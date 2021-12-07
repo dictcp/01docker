@@ -1,6 +1,7 @@
 # 01docker
 
 01docker is simple wrapper to setup Docker daemon on LIMA Debian VM, as a drop-in replacement for Docker for Mac.
+The Docker socket is exposed via SSH forwarding.
 
 ## Getting started
 ```bash
@@ -32,6 +33,11 @@ docker run -it --rm dictcp/utils /bin/bash
 docker context use desktop-linux
 limactl stop 01docker
 ```
+
+## Known issue
+- `/Users` is mounted as read-only
+- Extra VM restart is required for the first launch
+- no GUI (yet)
 
 ## Reference
 - https://github.com/lima-vm/lima/tree/master/examples
