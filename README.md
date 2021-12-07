@@ -27,6 +27,10 @@ limactl start 01docker
 
 # Enjoy in your daily work
 docker run -it --rm dictcp/utils /bin/bash
+
+# Want to switch back to Docker for Mac?
+docker context use desktop-linux
+limactl stop 01docker
 ```
 
 ## Reference
