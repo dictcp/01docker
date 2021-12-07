@@ -1,0 +1,68 @@
+# ref:
+# https://github.com/lima-vm/lima/blob/master/examples/docker.yaml
+# https://github.com/lima-vm/lima/blob/master/examples/debian.yaml
+
+# requires Lima v0.7.3 or later
+images:
+  - location: "https://cloud.debian.org/images/cloud/bullseye/daily/20211203-845/debian-11-generic-amd64-daily-20211203-845.qcow2"
+    arch: "x86_64"
+    digest: "sha512:796b26b84d12f147c3037c2444c35c6d0e0d5e2c39e1584b20724de46ee16617c356ec386b20b0d79ea3437ad9fa77a7fa84a6773c5cad0011a4dfacb3273f94"
+  - location: "https://cloud.debian.org/images/cloud/bullseye/daily/20211203-845/debian-11-generic-arm64-daily-20211203-845.qcow2"
+    arch: "aarch64"
+    digest: "sha512:920f0397911017bebf0df5972450beb041813825cc5820d6ae5a351c00d1c25fb93955abd85f0444e5bf04ac00b19e77bfc4352c6f4c5aad2ddd50a071f842de"
+
+mounts:
+  - location: "~"
+    writable: false
+  - location: "/tmp/lima"
+    writable: true
+
+ssh:
+  localPort: 60122
+  loadDotSSHPubKeys: false
+
+# containerd is managed by Docker, not by Lima, so the values are set to false here.
+containerd:
+  system: false
+  user: false
+
+provision:
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      command -v docker >/dev/null 2>&1 && exit 0
+      export DEBIAN_FRONTEND=noninteractive
+      curl -fsSL https://get.docker.com | sh
+      # NOTE: you may remove the lines below, if you prefer to use rootful docker, not rootless
+      # systemctl disable --now docker
+      # apt-get install -y uidmap dbus-user-session
+      ## NOTE: install fast mode multi-platform
+      docker run --privileged --rm tonistiigi/binfmt --install all
+      ls -1 /proc/sys/fs/binfmt_misc/qemu*
+  - mode: user
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      # systemctl --user start dbus
+      # dockerd-rootless-setuptool.sh install
+      # docker context use rootless
+      ## enable rootful docker
+      sudo usermod -G docker -a $(whoami)
+probes:
+  - script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      sleep 30
+      if ! timeout 30s bash -c "until command -v docker >/dev/null 2>&1; do sleep 3; done"; then
+        echo >&2 "docker is not installed yet"
+        exit 1
+      fi
+      # if ! timeout 30s bash -c "until pgrep rootlesskit; do sleep 3; done"; then
+      #   echo >&2 "rootlesskit (used by rootless docker) is not running"
+      #   exit 1
+      # fi
+    hint: See "/var/log/cloud-init-output.log". in the guest
+portForwards:
+  - guestSocket: "/var/run/docker.sock"
+    hostSocket: "{{.LimaHome}}/{{.Instance}}/sock/docker.sock"
