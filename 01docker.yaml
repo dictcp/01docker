@@ -49,11 +49,11 @@ provision:
       # docker context use rootless
       ## enable rootful docker
       sudo usermod -G docker -a $(whoami)
+
 probes:
   - script: |
       #!/bin/bash
       set -eux -o pipefail
-      sleep 30
       if ! timeout 30s bash -c "until command -v docker >/dev/null 2>&1; do sleep 3; done"; then
         echo >&2 "docker is not installed yet"
         exit 1
@@ -63,6 +63,7 @@ probes:
       #   exit 1
       # fi
     hint: See "/var/log/cloud-init-output.log". in the guest
+
 portForwards:
   - guestSocket: "/var/run/docker.sock"
     hostSocket: "{{.LimaHome}}/{{.Instance}}/sock/docker.sock"
